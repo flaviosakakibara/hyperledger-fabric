@@ -1,0 +1,126 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+  generation: 4
+  labels:
+    app: fabric-tools
+  name: fabric-tools
+  namespace: sfd-dev
+spec:
+  replicas: 1
+  selector:
+    app: fabric-tools
+    deploymentconfig: fabric-tools
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: fabric-tools
+        deploymentconfig: fabric-tools
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: dxl1pscnd002.dispositivos.bb.com.br
+      containers:
+      - tty: true
+        stdin: true
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                 echo 172.20.116.133 peer0-sfd.desenv.bb.com.br >> /etc/hosts;
+                 echo 172.20.116.133 orderer0-sfd.desenv.bb.com.br >> /etc/hosts;
+                 #configtxgen -outputBlock genesis_block.pb -profile SampleSingleMSPSolo -channelID orderer-system-channel
+                 #configtxgen -outputCreateChannelTx create_chan_tx.pb -profile SampleSingleMSPChannel -channelID sfd
+                 #configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate /channel-artifacts/BBPeeranchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
+               
+               #  peer channel create -o $ORDERER -c sfd -f /channel-artifacts/create_chan_tx.pb --tls true --cafile $ORDERER_CA
+               #  peer channel join -b sfd.block
+               #  peer channel update -o $ORDERER -c sfd -f /channel-artifacts/BBPeeranchors.tx --tls true --cafile $ORDERER_CA
+       
+        #         peer chaincode install -n sfdcc -v 1 -l node -p /channel/sfd-hyperledger-chaincode/
+        #         peer chaincode instantiate -o $ORDERER --tls true --cafile $ORDERER_CA -C sfd -n sfdcc -l node -v 1 -c '{"args":["createAddress"]}';
+        #         peer chaincode query -C deviceid -n mycc -c '{"Args":["query","a"]}';
+        #         peer chaincode invoke -o $ORDERER --tls true --cafile $ORDERER_CA -C sfd -n sfdcc --peerAddresses $PEER --tlsRootCertFiles $PEER_CA -c '{"Args":["register", "{\"isRegulator\":\"'true'\"}","{\"transaction_timestamp_tolerance\":300}"]}'
+        #         peer chaincode invoke -o $ORDERER --tls true --cafile $ORDERER_CA -C sfd -n sfdcc --peerAddresses $PEER --tlsRootCertFiles $PEER_CA -c '{"Args":["createAddress"]}';
+        #         peer chaincode query -C deviceid -n mycc -c '{"Args":["query","a"]}'
+        env:
+        - name: GOPATH
+          value: /opt/gopath
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: DEBUG
+        - name: CORE_PEER_ID
+          value: cli
+        - name: CORE_PEER_ADDRESS
+          value: peer0-sfd.desenv.bb.com.br:30200
+        - name: CORE_PEER_LOCALMSPID
+          value: BBPeer
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/tls/ca.crt
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /crypto-config/peerOrganizations/desenv.bb.com.br/users/Admin@desenv.bb.com.br/msp
+        - name: PEER_CA
+          value: /crypto-config/peerOrganizations/desenv.bb.com.br/peers/peer0-sfd.desenv.bb.com.br/tls/ca.crt
+        - name: ORDERER_CA
+          value: /crypto-config/ordererOrganizations/desenv.bb.com.br/orderers/orderer0-sfd.desenv.bb.com.br/msp/tlscacerts/tlsca.desenv.bb.com.br-cert.pem
+        - name: ORDERER
+          value: "orderer0-sfd.desenv.bb.com.br:30400"
+        - name: PEER
+          value: "peer0-sfd.desenv.bb.com.br:30200"
+        image: harbor.servicos.bb.com.br/fabric-network/hyperledger/fabric-tools@sha256:a2d881516d195b08c2dfbce97f6392ecbe1425dd2ed39ef1a4fb2ce1c4be70b1
+        imagePullPolicy: Always
+        name: fabric-tools
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+        - mountPath: /crypto-config
+          name: crypto-config
+        - mountPath: /etc/hyperledger/fabric/tls
+          name: peer0-sfd-tls
+        - mountPath: /channel-artifacts
+          name: channel-artifacts
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: crypto-config
+        persistentVolumeClaim:
+          claimName: sfd-desenv-crypto-config
+      - name: peer0-sfd-tls
+        persistentVolumeClaim:
+          claimName: peer0-sfd-tls
+      - name: channel-artifacts
+        persistentVolumeClaim:
+          claimName: sfd-desenv-channel-artifacts
+      
+  test: false
+  triggers:
+  - type: ConfigChange

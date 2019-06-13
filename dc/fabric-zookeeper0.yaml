@@ -1,0 +1,65 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: site1
+  name: fabric-zookeeper0
+  namespace: sfd-dev
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    app: site1
+    deploymentconfig: fabric-zookeeper0
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: site1
+        deploymentconfig: fabric-zookeeper0
+    spec:
+      containers:
+      - env:
+        - name: ZOO_MY_ID
+          value: "0"
+        - name: ZOO_SERVERS
+          value: server.0=0.0.0.0:2888:3888 server.1=zookeeper1:2888:3888 server.2=zookeeper2:2888:3888
+        image: harbor.servicos.bb.com.br/fabric-network/hyperledger/fabric-zookeeper:latest
+        imagePullPolicy: Always
+        name: fabric-zookeeper
+        ports:
+        - containerPort: 2181
+          protocol: TCP
+        - containerPort: 2888
+          protocol: TCP
+        - containerPort: 3888
+          protocol: TCP
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: fabric-zookeeper-1
+        - mountPath: /datalog
+          name: fabric-zookeeper-2
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: fabric-zookeeper-1
+      - emptyDir: {}
+        name: fabric-zookeeper-2
+  test: false
+  triggers:
+  - type: ConfigChange

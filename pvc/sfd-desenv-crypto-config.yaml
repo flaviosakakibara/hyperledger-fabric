@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sfd-desenv-crypto-config
+  namespace: sfd-dev
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  selector:
+    matchLabels:
+      volume: sfd-desenv-crypto-config
+  volumeName: sfd-desenv-crypto-config

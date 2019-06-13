@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: peer1-sfd-msp
+  namespace: sfd-dev
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  selector:
+    matchLabels:
+      volume: peer1-sfd-msp
+  volumeName: peer1-sfd-msp

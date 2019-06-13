@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: site1
+  name: kafka1-node
+  namespace: sfd-dev
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: 30301-tcp
+    nodePort: 30301
+    port: 30301
+    protocol: TCP
+    targetPort: 30301
+  selector:
+    deploymentconfig: fabric-kafka-1
+  sessionAffinity: None
+  type: NodePort
+status:
+  loadBalancer: {}

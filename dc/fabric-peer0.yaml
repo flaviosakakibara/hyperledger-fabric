@@ -1,0 +1,122 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: peer0-sfd
+  name: peer0-sfd
+  namespace: sfd-dev
+spec:
+  replicas: 1
+  selector:
+    app: peer0-sfd
+    deploymentconfig: peer0-sfd
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: peer0-sfd
+        deploymentconfig: peer0-sfd
+    spec:
+      containers:
+      - hostname: peer0-sfd
+        env:
+        - name: CORE_VM_ENDPOINT
+          value: unix:///host/var/run/docker.sock
+        - name: FABRIC_LOGGING_SPEC
+          value: DEBUG
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_GOSSIP_USELEADERELECTION
+          value: "true"
+        - name: CORE_PEER_GOSSIP_ORGLEADER
+          value: "false"
+        - name: CORE_PEER_PROFILE_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/tls/ca.crt
+        - name: CORE_PEER_ID
+          value: peer0-sfd.desenv.bb.com.br
+        - name: CORE_PEER_CHAINCODELISTENADDRESS
+          value: 0.0.0.0:30222
+        - name: CORE_PEER_ADDRESSAUTODETECT
+          value: "true"
+        - name: CORE_PEER_ADDRESS
+          value: peer0-sfd.desenv.bb.com.br:7051
+        - name: CORE_PEER_GOSSIP_BOOTSTRAP
+          value: peer0-sfd.desenv.bb.com.br:30200
+        - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+          value: peer0-sfd.desenv.bb.com.br:30200
+        - name: CORE_PEER_LOCALMSPID
+          value: BBPeer
+        - name: CORE_CHAINCODE_LOGGING_LEVEL
+          value: INFO
+        - name: CORE_CHAINCODE_STARTUPTIMEOUT
+          value: "600s"
+        image: harbor.servicos.bb.com.br/fabric-network/hyperledger/fabric-peer@sha256:d330e90a7bc7b207488a46fa9061db781ff38b100f09c00b88b5eb9461b23dc6
+        imagePullPolicy: Always
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo 172.20.116.133   orderer0-sfd.desenv.bb.com.br >> /etc/hosts;
+                echo 172.20.116.133   peer0-sfd.desenv.bb.com.br >> /etc/hosts;
+                echo 172.20.116.142   peer1-sfd.desenv.bb.com.br >> /etc/hosts;
+        name: peer0-sfd
+        ports:
+        - containerPort: 7051
+          protocol: TCP
+        - containerPort: 30222
+          protocol: TCP
+        - containerPort: 7053
+          protocol: TCP
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/hyperledger/fabric/msp
+          name: peer0-sfd-msp
+        - mountPath: /etc/hyperledger/fabric/tls
+          name: peer0-sfd-tls
+        - mountPath: /var/hyperledger/production
+          name: peer0-sfd-production
+        - mountPath: /host/var/run/docker.sock
+          name: docker-sock
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: dxl1pscnd001.dispositivos.bb.com.br
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: peer0-sfd-tls
+        persistentVolumeClaim:
+          claimName: peer0-sfd-tls
+      - name: peer0-sfd-msp
+        persistentVolumeClaim:
+          claimName: peer0-sfd-msp
+      - name: peer0-sfd-production
+        persistentVolumeClaim:
+          claimName: peer0-sfd-production
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+  test: false
+  triggers:
+  - type: ConfigChange

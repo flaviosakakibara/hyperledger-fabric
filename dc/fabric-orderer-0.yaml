@@ -1,0 +1,97 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: fabric-orderer-0
+  name: fabric-orderer-0
+  namespace: sfd-dev
+spec:
+  replicas: 1
+  selector:
+    app: fabric-orderer-0
+    deploymentconfig: fabric-orderer-0
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      creationTimestamp: null
+      labels:
+        app: fabric-orderer-0
+        deploymentconfig: fabric-orderer-0
+    spec:
+      containers:
+      - hostname: orderer0-sfd
+        env:
+        - name: FABRIC_LOGGING_SPEC
+          value: DEBUG
+        - name: ORDERER_GENERAL_LISTENADDRESS
+          value: 0.0.0.0
+        - name: ORDERER_GENERAL_GENESISMETHOD
+          value: file
+        - name: ORDERER_GENERAL_GENESISFILE
+          value: /channel-artifacts/genesis.block
+        - name: ORDERER_GENERAL_LOCALMSPID
+          value: BBOrd
+        - name: ORDERER_GENERAL_LOCALMSPDIR
+          value: /crypto-config/ordererOrganizations/desenv.bb.com.br/orderers/orderer0-sfd.desenv.bb.com.br/msp
+        - name: ORDERER_GENERAL_TLS_ENABLED
+          value: "true"
+        - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+          value: /crypto-config/ordererOrganizations/desenv.bb.com.br/orderers/orderer0-sfd.desenv.bb.com.br/tls/server.key
+        - name: ORDERER_GENERAL_TLS_CERTIFICATE
+          value: /crypto-config/ordererOrganizations/desenv.bb.com.br/orderers/orderer0-sfd.desenv.bb.com.br/tls/server.crt
+        - name: ORDERER_GENERAL_TLS_ROOTCAS
+          value: /crypto-config/ordererOrganizations/desenv.bb.com.br/orderers/orderer0-sfd.desenv.bb.com.br/tls/ca.crt
+        - name: ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR
+          value: "1"
+        - name: ORDERER_KAFKA_VERBOSE
+          value: "true"
+        image: harbor.servicos.bb.com.br/fabric-network/hyperledger/fabric-orderer@sha256:657f14da091ae36bf1c8384ddce62c5ca52139a7c1abbbfddf00cac99765d9d1
+        imagePullPolicy: Always
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo 172.20.116.133   orderer0-sfd.desenv.bb.com.br >> /etc/hosts;
+                echo 172.20.116.133   peer0-sfd.desenv.bb.com.br >> /etc/hosts;
+        name: fabric-orderer-0
+        ports:
+        - containerPort: 7050
+          protocol: TCP
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /crypto-config
+          name: crypto-config
+        - mountPath: /channel-artifacts
+          name: channel-artifacts
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: dxl1pscnd001.dispositivos.bb.com.br
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: crypto-config
+        persistentVolumeClaim:
+          claimName: sfd-desenv-crypto-config
+      - name: channel-artifacts
+        persistentVolumeClaim:
+          claimName: sfd-desenv-channel-artifacts
+  test: false
+  triggers:
+  - type: ConfigChange

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    deploymentconfig: peer0-sfd
+  name: peer0-sfd
+  namespace: sfd-dev
+spec:
+  ports:
+  - name: 7051-tcp
+    port: 7051
+    protocol: TCP
+    targetPort: 7051
+    NodePort: 30200
+  - name: 7052-tcp
+    port: 30222
+    protocol: TCP
+    targetPort: 30222
+    NodePort: 30222
+  - name: 7053-tcp
+    port: 7053
+    protocol: TCP
+    targetPort: 7053
+    NodePort: 32187
+  selector:
+    deploymentconfig: peer0-sfd
+  sessionAffinity: None
+  type: NodePort
+status:
+  loadBalancer: {}
